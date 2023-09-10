@@ -1,9 +1,13 @@
+#!/bin/env python3
+
 import argparse
-import sys
 import os
+import sys
+from abc import ABC, abstractmethod
+from base64 import b64decode
+
 import requests
 import yaml
-from abc import ABC, abstractmethod
 
 
 class Database(ABC):
@@ -97,6 +101,19 @@ class Datastore(Database):
 
         return scheme
 
+    def _parse_properties(self, properties):
+        for property, opt in properties.items():
+            properties[property] = None
+            for k, v in opt.items():
+                if "Value" in k:
+                    if k == "blobValue":
+                        properties[property] = b64decode(v).decode("utf-8")
+                        break
+                    else:
+                        properties[property] = v
+                        break
+        return properties
+
     def format_response(
         self, response: requests.Response, format="yaml", style="scheme"
     ):
@@ -112,18 +129,16 @@ class Datastore(Database):
                     entity = _entity.get("entity", {})
                     kind = entity["key"]["path"][0]["kind"]
                     entity_to_append = {
-                            "key": {
-                                "kind": kind,
-                                "id": entity["key"]["path"][0]["id"],
-                            },
-                            "properties": entity.get("properties", {}),
-                        }
-                    # for property, opt in entity_to_append["properties"].items():
-                    #     output_data["entities"][-1]["properties"][property] = opt[0]
-
-                    output_data["entities"].append(
-                        entity_to_append
+                        "key": {
+                            "kind": kind,
+                            "id": int(entity["key"]["path"][0]["id"]),
+                        },
+                        "properties": entity.get("properties", {}),
+                    }
+                    entity_to_append["properties"] = self._parse_properties(
+                        entity_to_append["properties"]
                     )
+                    output_data["entities"].append(entity_to_append)
 
             if format == "yaml":
                 # print(yaml.dump(data, sort_keys=False))
