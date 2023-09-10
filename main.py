@@ -318,7 +318,7 @@ def main():
         kind = args.content
         id = args.subcontent
         if id == "scheme":
-            client.get_scheme(kind)
+            print(yaml.dump(client.get_scheme(kind)))
         else:
             client.get(kind, id)
     elif args.action == "list":
