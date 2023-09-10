@@ -172,19 +172,23 @@ class Datastore(Database):
         )
         self.format_response(response)
 
-    def _clean_query(self, text):
-        opts = {}
-        lines = []
+    def _extract_query(self, text):
+        lines, opts = [], {}
         for line in text.split("\n"):
             if line.startswith("--"):
-                pass
+                if line.startswith("-- yq:"):
+                    yq_query = line.replace("-- yq:", "").strip()
+                    opts["yq"] = yq_query
+                elif line.startswith("-- jq:"):
+                    jq_query = line.replace("-- jq:", "").strip()
+                    opts["jq"] = jq_query
             else:
                 lines.append(line)
         text = "\n".join(lines)
         return text, opts
 
     def query(self, text, **kwargs):
-        queryString, opts = self._clean_query(text)
+        queryString, _ = self._extract_query(text)
         response = requests.post(
             self.DATASTORE_HOST + f"/v1/projects/{self.DATASTORE_PROJECT_ID}:runQuery",
             json={
