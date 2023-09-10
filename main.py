@@ -172,12 +172,24 @@ class Datastore(Database):
         )
         self.format_response(response)
 
+    def _clean_query(self, text):
+        opts = {}
+        lines = []
+        for line in text.split("\n"):
+            if line.startswith("--"):
+                pass
+            else:
+                lines.append(line)
+        text = "\n".join(lines)
+        return text, opts
+
     def query(self, text, **kwargs):
+        queryString, opts = self._clean_query(text)
         response = requests.post(
             self.DATASTORE_HOST + f"/v1/projects/{self.DATASTORE_PROJECT_ID}:runQuery",
             json={
                 "gqlQuery": {
-                    "queryString": text,
+                    "queryString": queryString,
                     "allowLiterals": True,
                 }
             },
